@@ -1,0 +1,61 @@
+blueprint:
+  name: Dim to warm
+  description: Make a light warmer as it gets dimmer
+  domain: automation
+  input:
+    target_light:
+      name: Lights
+      description: The lights to adjust
+      selector:
+        entity:
+          domain: light
+    min_color_temp:
+      name: Minimum Color Temperature
+      description: The minimum color temperature to set when the light is at its dimmest
+      default: 2200
+      selector:
+        number:
+          min: 1000
+          max: 6500
+          unit_of_measurement: 'K'
+          mode: slider
+          step: 50
+    max_color_temp:
+      name: Maximum Color Temperature
+      description: The maximum color temperature to set when the light is at its brightest
+      default: 2600
+      selector:
+        number:
+          min: 1000
+          max: 6500
+          unit_of_measurement: 'K'
+          mode: slider
+          step: 50
+
+variables:
+  target_light: !input target_light
+  min_color_temp: !input min_color_temp
+  max_color_temp: !input max_color_temp
+
+trigger:
+  - platform: state
+    entity_id:  !input target_light
+    attribute: brightness
+condition:
+  - condition: state
+    state: "on"
+    entity_id: !input target_light
+action:
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 0
+      milliseconds: 500
+  - service: light.turn_on
+    target:
+        entity_id: !input target_light
+    data:
+      kelvin: >-
+        {% set gradient = float(max_color_temp - min_color_temp) / 254 %}
+        {{ ( gradient * ( state_attr(target_light, 'brightness')|int - 1 ) + min_color_temp)|int }}
+mode: single
